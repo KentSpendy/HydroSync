@@ -20,14 +20,17 @@
         
         {{-- Action Buttons --}}
         <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
-            <a href="{{ route('transactions.create') }}"
-               class="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Add Transaction
-            </a>
+            @can('admin')
+                <a href="{{ route('transactions.create') }}"
+                    class="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add Transaction
+                </a>
+            @endcan
 
+            @can('admin')
             <div class="flex gap-2">
                 <a href="{{ route('transactions.export.excel') }}"
                    class="inline-flex items-center px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium text-sm rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
@@ -45,6 +48,7 @@
                     Export PDF
                 </a>
             </div>
+            @endcan
         </div>
 
         {{-- Success Message --}}
@@ -77,55 +81,31 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($transactions as $transaction)
                             <tr class="hover:bg-gray-50 transition-colors duration-150 {{ $transaction->payment_status === 'debt' ? 'bg-red-50' : '' }}">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ $transaction->customer_name }}</div>
-                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ $transaction->customer_name }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 truncate max-w-sm">{{ $transaction->order_details ?? '—' }}</td>
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900">₱{{ number_format($transaction->amount, 2) }}</td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-600 max-w-xs truncate">{{ $transaction->order_details ?? '—' }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-semibold text-gray-900">₱{{ number_format($transaction->amount, 2) }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
                                     @if($transaction->payment_status === 'paid')
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                            </svg>
-                                            Paid
-                                        </span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Paid</span>
                                     @else
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                            </svg>
-                                            Debt
-                                        </span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Debt</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-600">{{ $transaction->delivery_group ?? '—' }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-600">{{ $transaction->created_at->format('M d, Y') }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    <div class="flex items-center gap-3">
-                                        <a href="{{ route('transactions.edit', $transaction) }}" 
-                                           class="text-blue-600 hover:text-blue-800 font-medium transition-colors duration-150">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('transactions.destroy', $transaction) }}" method="POST"
-                                              onsubmit="return confirm('Are you sure you want to delete this transaction?');"
-                                              class="inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" 
-                                                    class="text-red-600 hover:text-red-800 font-medium transition-colors duration-150">
-                                                Delete
-                                            </button>
-                                        </form>
-                                    </div>
+                                <td class="px-6 py-4 text-sm text-gray-600">{{ $transaction->delivery_group ?? '—' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">{{ $transaction->created_at->format('M d, Y') }}</td>
+                                <td class="px-6 py-4">
+                                    @can('admin')
+                                        <div class="flex items-center gap-3">
+                                            <a href="{{ route('transactions.edit', $transaction) }}" 
+                                                class="text-blue-600 hover:text-blue-800 font-medium">Edit</a>
+                                            <form action="{{ route('transactions.destroy', $transaction) }}" method="POST"
+                                                onsubmit="return confirm('Are you sure you want to delete this transaction?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                                            </form>
+                                        </div>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty

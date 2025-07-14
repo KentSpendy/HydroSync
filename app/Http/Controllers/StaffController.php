@@ -9,12 +9,24 @@ use Illuminate\Support\Facades\Hash;
 class StaffController extends Controller
 {
     /**
-     * Display a listing of staff users.
+     * Display a listing of staff users with optional search.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $staff = User::where('role', 'employee')->paginate(10);
-        return view('staff.index', compact('staff'));
+        $search = $request->query('search');
+
+        $staff = User::where('role', 'employee')
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->paginate(10)
+            ->appends(['search' => $search]);
+
+        return view('staff.index', compact('staff', 'search'));
     }
 
     /**
@@ -57,20 +69,7 @@ class StaffController extends Controller
     /**
      * Update the specified staff in storage.
      */
-    public function update(Request $request, User $staff)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $staff->id,
-        ]);
 
-        $staff->update([
-            'name' => $request->name,
-            'email' => $request->email,
-        ]);
-
-        return redirect()->route('staff.index')->with('success', 'Staff updated successfully.');
-    }
 
     /**
      * Remove the specified staff from storage.
@@ -80,4 +79,26 @@ class StaffController extends Controller
         $staff->delete();
         return redirect()->route('staff.index')->with('success', 'Staff deleted successfully.');
     }
+
+
+    public function update(Request $request, User $staff)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $staff->id,
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        $staff->name = $request->name;
+        $staff->email = $request->email;
+
+        if ($request->filled('password')) {
+            $staff->password = \Hash::make($request->password);
+        }
+
+        $staff->save();
+
+        return redirect()->route('staff.edit', $staff)->with('success', 'Staff updated successfully.');
+    }
+
 }

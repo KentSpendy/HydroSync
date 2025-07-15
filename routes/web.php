@@ -8,22 +8,34 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\SalesHistoryController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\OtpController;
 
-// Public welcome page
-Route::get('/', function () {
-    return view('welcome');
-});
+/**
+ * 🌐 Public Welcome Page
+ */
+Route::get('/', fn () => view('welcome'));
 
-// Dashboard for authenticated and verified users
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-});
+/**
+ * 🔐 OTP Verification Routes
+ */
+Route::get('/verify-otp', [OtpController::class, 'showVerifyPage'])->name('otp.verify.page');
+Route::post('/verify-otp', [OtpController::class, 'verifyOtp'])->name('otp.verify');
 
-// Authenticated users only
-Route::middleware(['auth'])->group(function () {
+/**
+ * 🧑‍💼 Dashboard (Must be logged in, verified email, and OTP verified)
+ */
+Route::middleware(['auth', 'verified'])
+    ->get('/dashboard', [DashboardController::class, 'index'])
+    ->name('dashboard');
+
+/**
+ * ✅ Routes for Users Who Are Authenticated + OTP Verified
+ */
+Route::middleware(['auth', 'otp.verified'])->group(function () {
 
     /**
-     * Profile Routes
+     * 👤 Profile Management
      */
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -31,14 +43,25 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     /**
-     * Admin-only Routes
+     * 📅 Calendar Module
+     */
+    Route::prefix('calendar')->name('calendar.')->group(function () {
+        Route::get('/', [CalendarController::class, 'index'])->name('index');
+        Route::get('/events', [CalendarController::class, 'events'])->name('events');
+        Route::get('/day/{date}', [CalendarController::class, 'dayDetails'])->name('day.details');
+        Route::post('/notes', [CalendarController::class, 'storeNote'])->name('notes.store');
+        Route::delete('/notes/{id}', [CalendarController::class, 'deleteNote'])->name('notes.delete');
+    });
+
+    /**
+     * 🛡️ Admin-Only Routes
      */
     Route::middleware('role:admin')->group(function () {
         Route::resource('expenses', ExpenseController::class)->only(['index', 'create', 'store']);
         Route::resource('staff', StaffController::class)->except(['show']);
         Route::get('/sales-history', [SalesHistoryController::class, 'index'])->name('sales.history');
 
-        // Export (Admin only)
+        // Export
         Route::get('/transactions/export/excel', [ExportController::class, 'exportExcel'])->name('transactions.export.excel');
         Route::get('/transactions/export/pdf', [ExportController::class, 'exportPdf'])->name('transactions.export.pdf');
         Route::get('/expenses/export/excel', [ExportController::class, 'exportExpensesExcel'])->name('expenses.export.excel');
@@ -46,13 +69,16 @@ Route::middleware(['auth'])->group(function () {
     });
 
     /**
-     * Admin + Employee Shared Routes
+     * 👷 Admin + Employee Shared Routes
      */
     Route::middleware('role:admin,employee')->group(function () {
         Route::resource('transactions', TransactionController::class)->except(['show']);
         Route::patch('/sales-history/{transaction}/mark-paid', [SalesHistoryController::class, 'markAsPaid'])->name('sales.markAsPaid');
+        Route::patch('/transactions/{transaction}/done', [TransactionController::class, 'markAsDone'])->name('transactions.done');
     });
 });
 
-// Auth scaffolding
-require __DIR__.'/auth.php';
+/**
+ * 🔐 Laravel Breeze/Fortify Auth Routes (login, register, etc.)
+ */
+require __DIR__ . '/auth.php';

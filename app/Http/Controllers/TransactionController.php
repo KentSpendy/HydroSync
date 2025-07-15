@@ -11,9 +11,13 @@ class TransactionController extends Controller
     // Show all transactions
     public function index()
     {
-        $transactions = Transaction::latest()->paginate(10);
+        $transactions = Transaction::where('payment_status', '!=', 'paid')
+            ->latest()
+            ->paginate(10);
+
         return view('transactions.index', compact('transactions'));
     }
+
 
     // Show create form
     public function create()
@@ -68,4 +72,16 @@ class TransactionController extends Controller
         $transaction->delete();
         return redirect()->route('transactions.index')->with('success', 'Transaction deleted successfully.');
     }
+
+    
+
+    public function markAsDone(Transaction $transaction)
+    {
+        $transaction->update([
+            'payment_status' => 'paid',
+        ]);
+
+        return redirect()->route('transactions.index')->with('success', 'Transaction marked as done and moved to Sales History.');
+    }
+
 }

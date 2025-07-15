@@ -96,13 +96,20 @@
                                 <td class="px-6 py-4">
                                     @can('admin')
                                         <div class="flex items-center gap-3">
-                                            <a href="{{ route('transactions.edit', $transaction) }}" 
-                                                class="text-blue-600 hover:text-blue-800 font-medium">Edit</a>
+                                            <a href="{{ route('transactions.edit', $transaction) }}" class="text-blue-600 hover:text-blue-800">Edit</a>
+
                                             <form action="{{ route('transactions.destroy', $transaction) }}" method="POST"
-                                                onsubmit="return confirm('Are you sure you want to delete this transaction?');">
+                                                onsubmit="return confirm('Delete this transaction?');">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                                                <button class="text-red-600 hover:text-red-800">Delete</button>
+                                            </form>
+
+                                            <form action="{{ route('transactions.done', $transaction) }}" method="POST"
+                                                onsubmit="return confirm('Mark this as done?');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button class="text-green-600 hover:text-green-800">Done</button>
                                             </form>
                                         </div>
                                     @endcan

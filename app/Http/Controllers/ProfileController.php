@@ -7,8 +7,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -28,40 +26,13 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $user = $request->user();
+        $request->user()->fill($request->validated());
 
-        // Update name & email
-        $user->fill($request->validated());
-
-        // Handle profile photo upload
-        if ($request->hasFile('profile_photo')) {
-            $file = $request->file('profile_photo');
-            $filename = time() . '_' . $file->getClientOriginalName();
-
-            // ✅ Ensure the avatars directory exists
-            Storage::makeDirectory('public/avatars');
-
-            // ✅ Store the file
-            $stored = $file->move(storage_path('app/public/avatars'), $filename);
-
-            // ✅ DEBUG: Log the path for troubleshooting
-            Log::info('Profile photo stored at: ' . $stored);
-
-            // ✅ Delete old photo if it exists
-            if ($user->profile_photo) {
-                Storage::delete('public/avatars/' . $user->profile_photo);
-            }
-
-            // ✅ Save filename to DB
-            $user->profile_photo = $filename;
+        if ($request->user()->isDirty('email')) {
+            $request->user()->email_verified_at = null;
         }
 
-        // Reset email verification if changed
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
-        }
-
-        $user->save();
+        $request->user()->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
@@ -87,12 +58,10 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
-
-    public function show(Request $request): View
+    public function show()
     {
         return view('profile.show', [
-            'user' => $request->user(),
+            'user' => auth()->user()
         ]);
     }
-
 }

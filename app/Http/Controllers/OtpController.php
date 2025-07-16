@@ -67,4 +67,12 @@ class OtpController extends Controller
 
         return redirect()->route('dashboard')->with('success', 'OTP Verified!');
     }
+
+    public function cancel(Request $request)
+    {
+        Auth::logout();
+        Session::forget(['otp', 'otp_expires_at', 'otp_user_id', 'otp_verified']);
+
+        return redirect()->route('login')->with('status', 'OTP verification canceled.');
+    }
 }

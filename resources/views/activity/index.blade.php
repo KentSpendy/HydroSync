@@ -145,10 +145,7 @@
                 @if($logs->hasPages())
                     <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
                         <div class="flex items-center justify-between">
-                            <div class="flex-1 flex justify-between sm:hidden">
-                                {{ $logs->simplePaginate() }}
-                            </div>
-                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between w-full">
                                 <div>
                                     <p class="text-sm text-gray-700">
                                         Showing
@@ -161,7 +158,7 @@
                                     </p>
                                 </div>
                                 <div>
-                                    {{ $logs->links() }}
+                                    {{ $logs->links() }} {{-- ✅ This handles pagination UI --}}
                                 </div>
                             </div>
                         </div>

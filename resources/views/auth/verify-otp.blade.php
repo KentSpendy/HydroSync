@@ -92,6 +92,13 @@
                     </a>
                 </p>
             </div>
+
+            <form method="POST" action="{{ route('otp.cancel') }}">
+                @csrf
+                <button type="submit" class="text-sm text-gray-500 hover:underline mt-4">
+                    ← Cancel and return to login
+                </button>
+            </form>
         </div>
 
         <!-- Security Notice -->

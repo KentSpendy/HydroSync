@@ -1,5 +1,8 @@
 <?php
 
+
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
@@ -30,6 +33,28 @@ Route::post('/verify-otp', [OtpController::class, 'verifyOtp'])->name('otp.verif
 Route::middleware(['auth', 'verified', 'otp.verified'])
     ->get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
+
+
+// 📩 Show verify notice
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->middleware('auth')->name('verification.notice');
+
+// ✅ Handle email verification (from the email link)
+Route::get('/verify-email/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill(); // marks email as verified
+    return redirect('/dashboard'); // or any other route after verifying
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+// 🔁 Resend email verification
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', 'Verification link sent!');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
+Route::post('/otp-cancel', [\App\Http\Controllers\OtpController::class, 'cancel'])->name('otp.cancel');
+
+
 
 /**
  * ✅ Routes for Users Who Are Authenticated + OTP Verified

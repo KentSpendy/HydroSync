@@ -99,6 +99,9 @@ class StaffController extends Controller
         $staff->save();
 
         return redirect()->route('staff.edit', $staff)->with('success', 'Staff updated successfully.');
+
+        ActivityLogger::log('Account Unlocked', "{$user->name}'s account was updated.");
+
     }
 
 
@@ -120,6 +123,9 @@ class StaffController extends Controller
         } else {
             return redirect()->route('staff.index')->with('error', "Failed to unlock {$user->name}'s account.");
         }
+        
+        ActivityLogger::log('Account Unlocked', "{$user->name}'s account was unlocked by admin: " . auth()->user()->name);
+
     }
 
 }

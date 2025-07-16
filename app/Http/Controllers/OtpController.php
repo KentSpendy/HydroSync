@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Helpers\ActivityLogger;
 
 class OtpController extends Controller
 {
@@ -20,13 +21,13 @@ class OtpController extends Controller
             'otp' => 'required|numeric',
         ]);
 
-        // Session check
         if (!Session::has('otp') || !Session::has('otp_expires_at') || !Session::has('otp_user_id')) {
+            ActivityLogger::log('OTP Expired', 'User attempted to verify OTP but session/OTP was missing or expired.');
             return back()->withErrors(['otp' => 'No OTP found or session expired.']);
         }
 
-        // Expiration check
         if (now()->greaterThan(Session::get('otp_expires_at'))) {
+            ActivityLogger::log('OTP Expired', 'User attempted to verify OTP but it was expired.');
             return back()->withErrors(['otp' => 'OTP has expired.']);
         }
 
@@ -36,32 +37,33 @@ class OtpController extends Controller
             return back()->withErrors(['otp' => 'User not found.']);
         }
 
-        // Check if locked
         if ($user->is_locked) {
+            ActivityLogger::log('Account Locked', 'User attempted to verify OTP but account is already locked.');
             return back()->withErrors(['otp' => 'Your account is locked due to multiple failed OTP attempts. Please contact admin.']);
         }
 
-        // If OTP is incorrect
+        // ❌ Incorrect OTP
         if ($request->otp != Session::get('otp')) {
             $user->increment('otp_attempts');
 
             if ($user->otp_attempts >= 3) {
-                $user->is_locked = true;
-                $user->save(); // 👈 persist both attempts & lock
-
+                $user->update(['is_locked' => true]);
+                ActivityLogger::log('Account Locked', 'User account locked due to 3 incorrect OTP attempts.');
                 return back()->withErrors(['otp' => 'Your account has been locked due to multiple incorrect OTP entries.']);
             }
 
+            ActivityLogger::log('Invalid OTP', 'User entered an incorrect OTP.');
             return back()->withErrors(['otp' => 'Invalid OTP.']);
         }
 
-        // ✅ OTP success — Reset everything
+        // ✅ OTP Valid
         Session::forget(['otp', 'otp_expires_at', 'otp_user_id']);
         Session::put('otp_verified', true);
+        $user->update(['otp_attempts' => 0]);
 
-        $user->update([
-            'otp_attempts' => 0,
-        ]);
+        Auth::login($user);
+
+        ActivityLogger::log('OTP Verified', 'User verified OTP and successfully logged in.');
 
         return redirect()->route('dashboard')->with('success', 'OTP Verified!');
     }

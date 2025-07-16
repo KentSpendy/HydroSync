@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +10,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use App\Mail\OtpMail;
+use App\Helpers\ActivityLogger;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -36,7 +36,6 @@ class AuthenticatedSessionController extends Controller
 
         // 🔒 Check if user exists and is locked
         if ($user) {
-            // Lockout due to failed login attempts
             if (
                 $user->login_attempts >= 5 &&
                 $user->last_failed_login_at &&
@@ -47,7 +46,6 @@ class AuthenticatedSessionController extends Controller
                 ]);
             }
 
-            // Lockout due to manual lock
             if ($user->is_locked) {
                 return back()->withErrors([
                     'email' => 'This account is locked. Please contact the Administrator to unlock it.'
@@ -60,7 +58,7 @@ class AuthenticatedSessionController extends Controller
             if ($user) {
                 $user->increment('login_attempts');
                 $user->last_failed_login_at = now();
-                $user->save(); // ✅ Make sure both fields persist
+                $user->save();
             }
 
             return back()->withErrors([
@@ -68,7 +66,7 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        // ✅ Valid login
+        // ✅ Credentials valid - Reset login attempts
         if ($user) {
             $user->update([
                 'login_attempts' => 0,
@@ -80,7 +78,7 @@ class AuthenticatedSessionController extends Controller
 
         // 🔐 Generate OTP
         $otp = rand(100000, 999999);
-        $expiresAt = now()->addMinutes(5); //5 minutes
+        $expiresAt = now()->addMinutes(5);
 
         Session::put('otp', $otp);
         Session::put('otp_expires_at', $expiresAt);
@@ -89,23 +87,25 @@ class AuthenticatedSessionController extends Controller
 
         Mail::to($user->email)->send(new OtpMail($otp));
 
+        // 🪵 Log activity: credentials accepted, OTP required
+        ActivityLogger::log('Login Attempt', 'User passed credentials. OTP required.');
+
         return redirect()->route('otp.verify.page');
     }
-
-
-
 
     /**
      * Destroy an authenticated session.
      */
     public function destroy(Request $request): RedirectResponse
     {
+        ActivityLogger::log('Logout', 'User has logged out.');
+
         Auth::guard('web')->logout();
-
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');
+
+        ActivityLogger::log('Logout', 'User has logged out.');
     }
 }

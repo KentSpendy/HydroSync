@@ -394,7 +394,7 @@
             <div class="p-4 border-t border-white/10">
                 <div class="flex items-center space-x-2 text-sm text-gray-400">
                     <div class="w-2 h-2 bg-success rounded-full"></div>
-                    <span>Ako si bojo gwapo</span>
+                    <span>Ako si Jhunbert Bojo Bayot Groomer</span>
                 </div>
             </div>
         </div>
@@ -702,6 +702,7 @@
         }
 
         function addMessage(message, isUser = false, timestamp = null) {
+            message = message.replace(/\$/g, '₱');
     const messageDiv = document.createElement('div');
     messageDiv.className = `flex items-start space-x-3 animate-slide-up ${isUser ? 'justify-end' : ''}`;
     

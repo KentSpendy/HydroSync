@@ -10,6 +10,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\OtpController;
+use App\Http\Controllers\ChatController;
 
 /**
  * 🌐 Public Welcome Page
@@ -25,7 +26,7 @@ Route::post('/verify-otp', [OtpController::class, 'verifyOtp'])->name('otp.verif
 /**
  * 🧑‍💼 Dashboard (Must be logged in, verified email, and OTP verified)
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'otp.verified'])
     ->get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
@@ -54,11 +55,26 @@ Route::middleware(['auth', 'otp.verified'])->group(function () {
     });
 
     /**
+     * 💬 Chat Module
+     */
+    Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::post('/chat/send', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::get('/chat/sessions', [ChatController::class, 'getSessions'])->name('chat.sessions');
+    Route::get('/chat/history', [ChatController::class, 'getHistory'])->name('chat.history');
+    Route::delete('/chat/sessions', [ChatController::class, 'deleteSession'])->name('chat.delete');
+
+    /**
      * 🛡️ Admin-Only Routes
      */
     Route::middleware('role:admin')->group(function () {
+        // Expenses & Staff
         Route::resource('expenses', ExpenseController::class)->only(['index', 'create', 'store']);
         Route::resource('staff', StaffController::class)->except(['show']);
+
+        // Unlock Route
+        Route::patch('/staff/{user}/unlock', [StaffController::class, 'unlock'])->name('staff.unlock');
+
+        // Sales History
         Route::get('/sales-history', [SalesHistoryController::class, 'index'])->name('sales.history');
 
         // Export

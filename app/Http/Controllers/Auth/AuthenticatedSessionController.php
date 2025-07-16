@@ -28,37 +28,70 @@ class AuthenticatedSessionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'Invalid credentials.']);
+        $user = \App\Models\User::where('email', $request->email)->first();
+
+        // 🔒 Check if user exists and is locked
+        if ($user) {
+            // Lockout due to failed login attempts
+            if (
+                $user->login_attempts >= 5 &&
+                $user->last_failed_login_at &&
+                now()->diffInMinutes($user->last_failed_login_at) < 5
+            ) {
+                return back()->withErrors([
+                    'email' => 'Too many failed login attempts. Please wait 5 minutes before trying again.'
+                ]);
+            }
+
+            // Lockout due to manual lock
+            if ($user->is_locked) {
+                return back()->withErrors([
+                    'email' => 'This account is locked. Please contact the Administrator to unlock it.'
+                ]);
+            }
         }
 
-        // ✅ Regenerate session FIRST
+        // ❌ Invalid credentials
+        if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+            if ($user) {
+                $user->increment('login_attempts');
+                $user->last_failed_login_at = now();
+                $user->save(); // ✅ Make sure both fields persist
+            }
+
+            return back()->withErrors([
+                'email' => 'Invalid credentials.'
+            ]);
+        }
+
+        // ✅ Valid login
+        if ($user) {
+            $user->update([
+                'login_attempts' => 0,
+                'last_failed_login_at' => null,
+            ]);
+        }
+
         $request->session()->regenerate();
 
-        // ✅ Double-check user still logged in
-        $user = Auth::user();
-
-        // ✅ Generate OTP + Expiry
+        // 🔐 Generate OTP
         $otp = rand(100000, 999999);
-        $expiresAt = now()->addMinutes(5);
+        $expiresAt = now()->addMinutes(5); //5 minutes
 
-        // ✅ Store to session (AFTER regenerate)
-        session([
-            'otp' => $otp,
-            'otp_expires_at' => $expiresAt,
-            'otp_user_id' => $user->id,
-            'otp_verified' => false, // Force re-verification
-        ]);
+        Session::put('otp', $otp);
+        Session::put('otp_expires_at', $expiresAt);
+        Session::put('otp_user_id', $user->id);
+        Session::forget('otp_verified');
 
-        // ✅ Send OTP email
         Mail::to($user->email)->send(new OtpMail($otp));
 
         return redirect()->route('otp.verify.page');
-}
+    }
+
 
 
 

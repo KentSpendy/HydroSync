@@ -101,4 +101,25 @@ class StaffController extends Controller
         return redirect()->route('staff.edit', $staff)->with('success', 'Staff updated successfully.');
     }
 
+
+    public function unlock(User $user)
+    {
+        if (!auth()->user()->can('admin')) {
+            abort(403, 'Unauthorized');
+        }
+
+        $updated = $user->update([
+            'is_locked' => false,
+            'otp_attempts' => 0,
+            'login_attempts' => 0,
+            'last_failed_login_at' => null,
+        ]);
+
+        if ($updated) {
+            return redirect()->route('staff.index')->with('success', "{$user->name}'s account has been unlocked successfully.");
+        } else {
+            return redirect()->route('staff.index')->with('error', "Failed to unlock {$user->name}'s account.");
+        }
+    }
+
 }

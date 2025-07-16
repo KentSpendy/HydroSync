@@ -152,7 +152,7 @@
                                                         </span>
                                                     @else
                                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            Staff Member
+                                                            Staff Member 
                                                         </span>
                                                     @endif
                                                 </div>
@@ -170,10 +170,15 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($user->email_verified_at)
+                                        @if($user->is_locked)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                <span class="w-2 h-2 bg-red-400 rounded-full mr-1"></span>
+                                                Locked
+                                            </span>
+                                        @elseif($user->email_verified_at)
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                                 <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
-                                                {{ $user->active ? 'Active' : 'Inactive' }}
+                                                {{$user->email_verified_at? "Verified" : "Unverified"}}
                                             </span>
                                         @else
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -184,24 +189,40 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center space-x-3">
+                                            {{-- Edit button --}}
                                             <a href="{{ route('staff.edit', $user) }}" 
-                                               class="text-indigo-600 hover:text-indigo-900 transition-colors duration-150">
+                                            class="text-indigo-600 hover:text-indigo-900 transition-colors duration-150" title="Edit User">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
                                             </a>
-                                            
+
+                                            {{-- Delete button --}}
                                             <button onclick="confirmDelete('{{ $user->id }}', '{{ $user->name }}')"
-                                                    class="text-red-600 hover:text-red-900 transition-colors duration-150">
+                                                    class="text-red-600 hover:text-red-900 transition-colors duration-150" title="Delete User">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
                                             </button>
-                                            
+
                                             <form id="delete-form-{{ $user->id }}" method="POST" action="{{ route('staff.destroy', $user) }}" style="display: none;">
                                                 @csrf
                                                 @method('DELETE')
                                             </form>
+
+                                            {{-- Unlock button (only if locked) --}}
+                                           @if((bool) $user->is_locked)
+                                                <form method="POST" action="{{ route('staff.unlock', $user->id) }}">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="text-yellow-600 hover:text-yellow-800" title="Unlock Account">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M15 11V7a4 4 0 10-8 0v4m-2 0h12a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -262,7 +283,7 @@
                     <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
                         <div class="flex-1 flex justify-between sm:hidden">
                             @if($staff->onFirstPage())
-                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-white cursor-default">
+                                <span class="relative inline-flex items-center px-4 py-2 borAAder border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-white cursor-default">
                                     Previous
                                 </span>
                             @else

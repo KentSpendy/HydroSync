@@ -25,6 +25,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'role',
         'profile_photo', // 👈 add this
+        'otp_attempts',
+        'login_attempts',
+        'last_failed_login_at',
+        'is_locked',
     ];
 
     /**

@@ -15,7 +15,7 @@
                     <h3 class="text-lg font-medium text-gray-900">Expense Details</h3>
                 </div>
                 
-                <form method="POST" action="{{ route('expenses.store') }}" class="px-6 py-6 space-y-6">
+                <form method="POST" action="{{ route('expenses.store') }}" class="px-6 py-6 space-y-6" id="expenseForm">
                     @csrf
 
                     <div class="space-y-1">
@@ -64,7 +64,8 @@
                                     class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
                                 Cancel
                             </button>
-                            <button type="submit" 
+                            <button type="button" 
+                                    id="saveExpenseBtn"
                                     class="px-6 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
                                 Save Expense
                             </button>
@@ -74,4 +75,114 @@
             </div>
         </div>
     </div>
+
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveBtn = document.getElementById('saveExpenseBtn');
+            const form = document.getElementById('expenseForm');
+            
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Get form data for preview
+                const description = form.querySelector('input[name="description"]').value;
+                const category = form.querySelector('select[name="category"]').value;
+                const amount = form.querySelector('input[name="amount"]').value;
+                const date = form.querySelector('input[name="date"]').value;
+                
+                // Validate form first
+                if (!description || !category || !amount || !date) {
+                    Swal.fire({
+                        title: 'Missing Information',
+                        text: 'Please fill in all required fields.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc2626'
+                    });
+                    return;
+                }
+                
+                // Get category display name
+                const categoryDisplay = {
+                    'fuel': '⛽ Fuel',
+                    'maintenance': '🔧 Maintenance',
+                    'others': '📋 Others'
+                }[category];
+                
+                // Show confirmation dialog
+                Swal.fire({
+                    title: 'Confirm Expense',
+                    html: `
+                        <div class="text-left space-y-2">
+                            <p><strong>Description:</strong> ${description}</p>
+                            <p><strong>Category:</strong> ${categoryDisplay}</p>
+                            <p><strong>Amount:</strong> ₱${parseFloat(amount).toFixed(2)}</p>
+                            <p><strong>Date:</strong> ${date}</p>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Save Expense',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Saving...',
+                            text: 'Please wait while we save your expense.',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // Submit the form
+                        form.submit();
+                    }
+                });
+            });
+        });
+        
+        // Show success message if there's a success session
+        @if(session('success'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    title: 'Success!',
+                    text: '{{ session('success') }}',
+                    icon: 'success',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#dc2626'
+                });
+            });
+        @endif
+        
+        // Show error message if there are validation errors
+        @if($errors->any())
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    title: 'Validation Error',
+                    html: `
+                        <div class="text-left">
+                            <ul class="list-disc list-inside space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    `,
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#dc2626'
+                });
+            });
+        @endif
+    </script>
 </x-app-layout>
